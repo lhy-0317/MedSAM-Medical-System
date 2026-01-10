@@ -163,7 +163,7 @@ parser.add_argument("-pretrain_model_path", type=str, default="")
 parser.add_argument("-work_dir", type=str, default="./work_dir")
 # train
 parser.add_argument("-num_epochs", type=int, default=1000)
-parser.add_argument("-batch_size", type=int, default=2)
+parser.add_argument("-batch_size", type=int, default=1)#本来batch_size是2需要10GB显存，但是3060显存只有6GB，所以减少batch_size
 parser.add_argument("-num_workers", type=int, default=0)
 # Optimizer parameters
 parser.add_argument(
@@ -175,7 +175,7 @@ parser.add_argument(
 parser.add_argument(
     "-use_wandb", type=bool, default=False, help="use wandb to monitor training"
 )
-parser.add_argument("-use_amp", action="store_true", default=False, help="use amp")
+parser.add_argument("-use_amp", action="store_true", default=True, help="use amp")#开启自动混合精度，加速训练速度
 parser.add_argument(
     "--resume", type=str, default="", help="Resuming training from checkpoint"
 )
@@ -321,7 +321,7 @@ def main():
                 ## AMP
                 with torch.autocast(device_type="cuda", dtype=torch.float16):
                     medsam_pred = medsam_model(image, boxes_np)
-                    loss = seg_loss(medsam_pred, gt2D) + ce_loss(
+                    loss = seg_loss(medsam_pred, gt2D.float()) + ce_loss(
                         medsam_pred, gt2D.float()
                     )
                 scaler.scale(loss).backward()
@@ -330,7 +330,7 @@ def main():
                 optimizer.zero_grad()
             else:
                 medsam_pred = medsam_model(image, boxes_np)
-                loss = seg_loss(medsam_pred, gt2D) + ce_loss(medsam_pred, gt2D.float())
+                loss = seg_loss(medsam_pred, gt2D.float()) + ce_loss(medsam_pred, gt2D.float())
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
